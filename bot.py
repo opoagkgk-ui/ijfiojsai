@@ -2,7 +2,7 @@ import os
 import logging
 import random
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -31,7 +31,6 @@ logging.basicConfig(
 # ==================== ФАЙЛЫ ДАННЫХ ====================
 CARDS_FILE = "cards_data.json"
 USERS_FILE = "users_collection.json"
-MESSAGES_FILE = "user_messages.json"
 
 # ==================== ЗАГРУЗКА/СОХРАНЕНИЕ ====================
 def load_json(filename):
@@ -47,22 +46,82 @@ def save_json(filename, data):
 
 # ==================== ДАННЫЕ КАРТОЧЕК ====================
 DEFAULT_CARDS = {
-    # Обычные (1-3)
-    "1": {"name": "Карточка 1", "rarity": "обычная", "emoji": "🟫"},
-    "2": {"name": "Карточка 2", "rarity": "обычная", "emoji": "🟫"},
-    "3": {"name": "Карточка 3", "rarity": "обычная", "emoji": "🟫"},
-    # Редкие (4-6)
-    "4": {"name": "Карточка 4", "rarity": "редкая", "emoji": "🟦"},
-    "5": {"name": "Карточка 5", "rarity": "редкая", "emoji": "🟦"},
-    "6": {"name": "Карточка 6", "rarity": "редкая", "emoji": "🟦"},
-    # Эпические (7-9)
-    "7": {"name": "Карточка 7", "rarity": "эпическая", "emoji": "🟪"},
-    "8": {"name": "Карточка 8", "rarity": "эпическая", "emoji": "🟪"},
-    "9": {"name": "Карточка 9", "rarity": "эпическая", "emoji": "🟪"},
-    # Мифические (10-12)
-    "10": {"name": "Карточка 10", "rarity": "мифическая", "emoji": "🌟"},
-    "11": {"name": "Карточка 11", "rarity": "мифическая", "emoji": "🌟"},
-    "12": {"name": "Карточка 12", "rarity": "мифическая", "emoji": "🌟"},
+    # Обычные
+    "1": {
+        "name": "Красный меллстрой",
+        "rarity": "обычная",
+        "emoji": "🔴",
+        "file_id": "AgACAgIAAxkBAAFPtlRqX5H3GnYrbqdZ-czppS_ZfA1VZgACoxdrG3bE-Up652MZlEPOVQEAAwIAA3kAAz0E"
+    },
+    "2": {
+        "name": "Омайгад",
+        "rarity": "обычная",
+        "emoji": "😱",
+        "file_id": "AgACAgIAAxkBAAFPtnFqX5NwnSFr3yICgs1dFJkqRM1hRwACqBdrG3bE-UogIWkVS6X9HAEAAwIAA3kAAz0E"
+    },
+    "3": {
+        "name": "Котость",
+        "rarity": "обычная",
+        "emoji": "🐱",
+        "file_id": "AgACAgIAAxkBAAFPtm1qX5Mq7YFoGNVekEVrf4mSrKKDtQACphdrG3bE-UoTf05wAAFgc7cBAAMCAAN4AAM9BA"
+    },
+    # Редкие
+    "4": {
+        "name": "Карточка 4",
+        "rarity": "редкая",
+        "emoji": "🟦",
+        "file_id": None
+    },
+    "5": {
+        "name": "Карточка 5",
+        "rarity": "редкая",
+        "emoji": "🟦",
+        "file_id": None
+    },
+    "6": {
+        "name": "Карточка 6",
+        "rarity": "редкая",
+        "emoji": "🟦",
+        "file_id": None
+    },
+    # Эпические
+    "7": {
+        "name": "Карточка 7",
+        "rarity": "эпическая",
+        "emoji": "🟪",
+        "file_id": None
+    },
+    "8": {
+        "name": "Карточка 8",
+        "rarity": "эпическая",
+        "emoji": "🟪",
+        "file_id": None
+    },
+    "9": {
+        "name": "Карточка 9",
+        "rarity": "эпическая",
+        "emoji": "🟪",
+        "file_id": None
+    },
+    # Мифические
+    "10": {
+        "name": "Карточка 10",
+        "rarity": "мифическая",
+        "emoji": "🌟",
+        "file_id": None
+    },
+    "11": {
+        "name": "Карточка 11",
+        "rarity": "мифическая",
+        "emoji": "🌟",
+        "file_id": None
+    },
+    "12": {
+        "name": "Карточка 12",
+        "rarity": "мифическая",
+        "emoji": "🌟",
+        "file_id": None
+    },
 }
 
 # ==================== КОЛОДЫ ====================
@@ -139,22 +198,17 @@ def add_messages(user_id, count=1):
     data = get_user_data(user_id)
     data["messages"] += count
     
-    # Проверяем, сколько колод нужно выдать
     packs_to_add = {"common": 0, "rare": 0, "epic": 0}
     
-    # Обычные колоды за каждые 50 сообщений
     common_count = data["messages"] // 50
     packs_to_add["common"] = common_count - data.get("last_common_pack", 0)
     
-    # Редкие колоды за каждые 150 сообщений
     rare_count = data["messages"] // 150
     packs_to_add["rare"] = rare_count - data.get("last_rare_pack", 0)
     
-    # Эпические колоды за каждые 250 сообщений
     epic_count = data["messages"] // 250
     packs_to_add["epic"] = epic_count - data.get("last_epic_pack", 0)
     
-    # Обновляем последние выданные колоды
     if packs_to_add["common"] > 0:
         data["last_common_pack"] = common_count
     if packs_to_add["rare"] > 0:
@@ -162,7 +216,6 @@ def add_messages(user_id, count=1):
     if packs_to_add["epic"] > 0:
         data["last_epic_pack"] = epic_count
     
-    # Добавляем колоды в инвентарь
     for pack_type, count in packs_to_add.items():
         if count > 0:
             data["packs"][pack_type] += count
@@ -186,10 +239,8 @@ def open_pack(user_id, pack_type):
     if data["packs"].get(pack_type, 0) <= 0:
         return None, "❌ У тебя нет таких колод!"
     
-    # Убираем одну колоду
     data["packs"][pack_type] -= 1
     
-    # Определяем, какая карточка выпала
     pack_data = PACKS.get(pack_type)
     if not pack_data:
         return None, "❌ Неизвестный тип колоды!"
@@ -197,7 +248,6 @@ def open_pack(user_id, pack_type):
     rewards = pack_data["rewards"]
     rarity = roll_rarity(rewards)
     
-    # Выбираем случайную карточку этой редкости
     cards = load_cards()
     available_cards = [card_id for card_id, card in cards.items() if card["rarity"] == rarity]
     
@@ -207,7 +257,6 @@ def open_pack(user_id, pack_type):
     card_id = random.choice(available_cards)
     card = cards[card_id]
     
-    # Добавляем карточку пользователю
     data["cards"].append(card_id)
     data["total_opens"] += 1
     data["last_open"] = datetime.now().isoformat()
@@ -264,6 +313,20 @@ def get_user_info(user_id):
         "messages": data["messages"],
         "opens": data["total_opens"]
     }
+
+# ==================== ФУНКЦИЯ ОТПРАВКИ КАРТОЧКИ ====================
+async def send_card(update, context, card_data, caption=""):
+    """Отправляет карточку с картинкой (через file_id) или просто текст."""
+    file_id = card_data.get("file_id")
+    
+    if file_id:
+        await update.message.reply_photo(
+            photo=file_id,
+            caption=caption,
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(caption, parse_mode="Markdown")
 
 # ==================== КОМАНДЫ ====================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -410,12 +473,11 @@ async def admin_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📭 Пока нет пользователей!")
         return
     
-    # Сортируем по количеству сообщений
     sorted_users = sorted(
         users.items(),
         key=lambda x: x[1].get("messages", 0),
         reverse=True
-    )[:20]  # Показываем топ-20
+    )[:20]
     
     text = "👥 **Топ-20 пользователей:**\n\n"
     for idx, (user_id, data) in enumerate(sorted_users, 1):
@@ -490,21 +552,22 @@ async def open_pack_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     card_data = load_cards()
-    card_info_data = card_data.get(result, {})
+    card_info = card_data.get(result, {})
     
-    rarity_emoji = {"обычная": "⬜", "редкая": "🟦", "эпическая": "🟪", "мифическая": "🌟"}.get(card_info_data.get("rarity", "обычная"), "⬜")
+    rarity_emoji = {"обычная": "⬜", "редкая": "🟦", "эпическая": "🟪", "мифическая": "🌟"}.get(card_info.get("rarity", "обычная"), "⬜")
     
-    await update.message.reply_text(
+    caption = (
         f"🎴 **Ты открыл колоду!**\n\n"
-        f"{rarity_emoji} **{card_info_data.get('name', 'Неизвестно')}**\n"
-        f"📊 Редкость: {card_info_data.get('rarity', 'обычная')}\n"
+        f"{rarity_emoji} **{card_info.get('name', 'Неизвестно')}**\n"
+        f"📊 Редкость: {card_info.get('rarity', 'обычная')}\n"
         f"🆔 ID: `{result}`\n\n"
         f"📦 Осталось колод:\n"
         f"• Обычных: {get_collection_stats(user_id)['packs'].get('common', 0)}\n"
         f"• Редких: {get_collection_stats(user_id)['packs'].get('rare', 0)}\n"
-        f"• Эпических: {get_collection_stats(user_id)['packs'].get('epic', 0)}",
-        parse_mode="Markdown"
+        f"• Эпических: {get_collection_stats(user_id)['packs'].get('epic', 0)}"
     )
+    
+    await send_card(update, context, card_info, caption)
 
 async def collection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показывает коллекцию карточек."""
@@ -614,21 +677,24 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         
         card_data = load_cards()
-        card_info_data = card_data.get(result, {})
+        card_info = card_data.get(result, {})
         
-        rarity_emoji = {"обычная": "⬜", "редкая": "🟦", "эпическая": "🟪", "мифическая": "🌟"}.get(card_info_data.get("rarity", "обычная"), "⬜")
+        rarity_emoji = {"обычная": "⬜", "редкая": "🟦", "эпическая": "🟪", "мифическая": "🌟"}.get(card_info.get("rarity", "обычная"), "⬜")
         
-        await query.edit_message_text(
+        caption = (
             f"🎴 **Ты открыл колоду!**\n\n"
-            f"{rarity_emoji} **{card_info_data.get('name', 'Неизвестно')}**\n"
-            f"📊 Редкость: {card_info_data.get('rarity', 'обычная')}\n"
+            f"{rarity_emoji} **{card_info.get('name', 'Неизвестно')}**\n"
+            f"📊 Редкость: {card_info.get('rarity', 'обычная')}\n"
             f"🆔 ID: `{result}`\n\n"
             f"📦 Осталось колод:\n"
             f"• Обычных: {get_collection_stats(user_id)['packs'].get('common', 0)}\n"
             f"• Редких: {get_collection_stats(user_id)['packs'].get('rare', 0)}\n"
-            f"• Эпических: {get_collection_stats(user_id)['packs'].get('epic', 0)}",
-            parse_mode="Markdown"
+            f"• Эпических: {get_collection_stats(user_id)['packs'].get('epic', 0)}"
         )
+        
+        # Отправляем как новое сообщение вместо редактирования
+        await query.message.delete()
+        await send_card(update, context, card_info, caption)
         return
 
 # ==================== ОБРАБОТЧИК СООБЩЕНИЙ ====================
@@ -678,7 +744,6 @@ def main():
     app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CommandHandler("card", card_info))
     
-    # Админ-команды
     app.add_handler(CommandHandler("give", give_packs))
     app.add_handler(CommandHandler("admin_info", admin_info))
     app.add_handler(CommandHandler("admin_list", admin_list))
